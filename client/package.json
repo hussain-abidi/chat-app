@@ -1,0 +1,7 @@
+{
+  "name": "chat-client",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  }
+}
