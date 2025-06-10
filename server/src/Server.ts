@@ -59,7 +59,12 @@ export class Server {
   async handleRegister(req: Request) {
     if (req.method !== "POST") { return; }
 
-    const reqJson = await req.json();
+    let reqJson;
+    try {
+      reqJson = await req.json();
+    } catch (err) {
+      return Response.json({ message: "Malformed request" }, { status: 400 });
+    }
 
     const username = reqJson.username;
     const password = reqJson.password;
@@ -82,7 +87,12 @@ export class Server {
   async handleLogin(req: Request) {
     if (req.method !== "POST") { return; }
 
-    const reqJson = await req.json();
+    let reqJson;
+    try {
+      reqJson = await req.json();
+    } catch (err) {
+      return Response.json({ message: "Malformed request" }, { status: 400 });
+    }
 
     const username = reqJson.username;
     const password = reqJson.password;
@@ -125,7 +135,13 @@ export class Server {
   async handleLogout(req: Request) {
     if (req.method !== "POST") { return; }
 
-    const reqJson = await req.json();
+    let reqJson;
+    try {
+      reqJson = await req.json();
+    } catch (err) {
+      return Response.json({ message: "Malformed request" }, { status: 400 });
+    }
+
     const username = reqJson.username;
 
     for (const [token, user] of this.tokens) {
@@ -159,8 +175,14 @@ export class Server {
   socketMessage(ws: SocketType, message: string) {
     const username = ws.data.username;
 
-    const data: MessageType = JSON.parse(message);
-    const target = this.sockets.get(data.to);
+    let data: MessageType;
+    try {
+      data = JSON.parse(message);
+    } catch (err) {
+      return;
+    }
+
+    const targetUser = this.sockets.get(data.to);
 
     const trimmedMessage = data.message.trim();
 
@@ -168,8 +190,8 @@ export class Server {
       return;
     }
 
-    if (target) {
-      target.send(JSON.stringify({ from: username, message: trimmedMessage }));
+    if (targetUser) {
+      targetUser.send(JSON.stringify({ from: username, message: trimmedMessage }));
 
       this.db.insertMessage(username, data.to, trimmedMessage);
 
