@@ -12,11 +12,20 @@
       <input id="usernameRegister" placeholder="Username" />
       <input id="passwordRegister" placeholder="Password" type="password" />
       <button id="registerButton">Register</button>
+      <button id="gotoLogin">Login Page</button>
+      <p id="registerError" hidden>Registration failed</p>
     </div>
-    <div id="loginScreen" hidden="true">
+    <div id="loginScreen" hidden>
       <input id="usernameLogin" placeholder="Username" />
       <input id="passwordLogin" placeholder="Password" type="password" />
       <button id="loginButton">Login</button>
+      <p id="loginError" hidden>Login failed</p>
+    </div>
+    <div id="chatScreen" hidden>
+      <input id="targetInput" placeholder="Send to" />
+      <input id="messageInput" placeholder="Message" />
+      <button id="sendButton">Send</button>
+      <div id="messages"></div>
     </div>
   </body>
   <script src="dist/app.js"></script>

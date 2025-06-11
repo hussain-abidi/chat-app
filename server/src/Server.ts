@@ -97,16 +97,16 @@ export class Server {
     const username = reqJson.username;
     const password = reqJson.password;
 
-    for (const [token, user] of this.tokens) {
-      if (user === username) {
-        return Response.json({ token });
-      }
-    }
-
     const hashedPassword = this.db.getHashedPassword(username);
 
     if (!hashedPassword || !await Bun.password.verify(password, hashedPassword)) {
       return Response.json({ message: "Invalid credentials" }, { status: 401 });
+    }
+
+    for (const [token, user] of this.tokens) {
+      if (user === username) {
+        return Response.json({ token });
+      }
     }
 
     const token = randomUUID();
