@@ -47,13 +47,33 @@ export class Server {
     const url = new URL(req.url);
 
     switch (url.pathname) {
-      case "/register": return this.handleRegister(req);
-      case "/login": return this.handleLogin(req);
+      case "/register": return this.getPage("public/register.html");
+      case "/login": return this.getPage("public/login.html");
+      case "/chat": return this.getPage("public/chat.html");
+      case "/reg": return this.handleRegister(req);
+      case "/log": return this.handleLogin(req);
       case "/ws": return this.handleWS(req, server);
       case "/logout": return this.handleLogout(req);
 
       default: return this.handleStatic(req);
     }
+  }
+
+  async getPage(path: string) {
+    const file = Bun.file(`../client/${path}`);
+
+    if (!(await file.exists())) {
+      return new Response("Not Found", { status: 404 });
+    }
+
+    return new Response(file);
+  }
+
+  async handleStatic(req: Request) {
+    const url = new URL(req.url);
+    const path = url.pathname === "/" ? "/public/index.html" : url.pathname;
+
+    return this.getPage(path);
   }
 
   async handleRegister(req: Request) {
@@ -151,18 +171,7 @@ export class Server {
     }
   }
 
-  async handleStatic(req: Request) {
-    const url = new URL(req.url);
-    const path = url.pathname === "/" ? "/public/index.html" : url.pathname;
 
-    const file = Bun.file(`../client${path}`);
-
-    if (!(await file.exists())) {
-      return new Response("Not Found", { status: 404 });
-    }
-
-    return new Response(file);
-  }
 
   socketOpen(ws: SocketType) {
     const username = ws.data.username;
@@ -170,6 +179,10 @@ export class Server {
     this.sockets.set(username, ws);
 
     console.log(`${username} connected from ${ws.remoteAddress}.`);
+
+    const conversations = this.db.getConversations(username).map((conversation: any) => conversation.to_username);
+
+    ws.send(JSON.stringify({ type: "conversations", conversations }));
   }
 
   socketMessage(ws: SocketType, message: string) {
