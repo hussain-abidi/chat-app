@@ -47,9 +47,9 @@ export class Server {
     const url = new URL(req.url);
 
     switch (url.pathname) {
-      case "/register": return this.getPage("public/register.html");
-      case "/login": return this.getPage("public/login.html");
-      case "/chat": return this.getPage("public/chat.html");
+      case "/register": return this.getPage("/register.html");
+      case "/login": return this.getPage("/login.html");
+      case "/chat": return this.getPage("/chat.html");
       case "/reg": return this.handleRegister(req);
       case "/log": return this.handleLogin(req);
       case "/ws": return this.handleWS(req, server);
@@ -60,7 +60,8 @@ export class Server {
   }
 
   async getPage(path: string) {
-    const file = Bun.file(`../client/${path}`);
+    console.log(path);
+    const file = Bun.file(`static${path}`);
 
     if (!(await file.exists())) {
       return new Response("Not Found", { status: 404 });
@@ -71,7 +72,7 @@ export class Server {
 
   async handleStatic(req: Request) {
     const url = new URL(req.url);
-    const path = url.pathname === "/" ? "/public/index.html" : url.pathname;
+    const path = url.pathname === "/" ? "/index.html" : url.pathname;
 
     return this.getPage(path);
   }
@@ -169,6 +170,8 @@ export class Server {
         this.tokens.delete(token);
       }
     }
+    
+    return Response.json({ message: "Logged out successfully" });
   }
 
 
@@ -191,6 +194,7 @@ export class Server {
     let data: MessageType;
     try {
       data = JSON.parse(message);
+      if (!data.to || typeof data.message !== 'string') return;
     } catch (err) {
       return;
     }

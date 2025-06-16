@@ -13,5 +13,6 @@ lerna-debug.log*
 # Caches
 bun.lockb
 node_modules/
-build/
+client/node_modules/
 db.sqlite
+public/dist/
