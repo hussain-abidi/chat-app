@@ -183,7 +183,8 @@ export class Server {
 
     console.log(`${username} connected from ${ws.remoteAddress}.`);
 
-    const conversations = this.db.getConversations(username).map((conversation: any) => conversation.to_username);
+    const conversations = this.db.getConversations(username);
+    console.log(conversations);
 
     ws.send(JSON.stringify({ type: "conversations", conversations }));
   }

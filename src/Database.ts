@@ -14,14 +14,25 @@ export class DB {
         username VARCHAR(255) PRIMARY KEY,
         password_hash TEXT NOT NULL
       );
-    `);
-    this.db.run(`
+
+      CREATE TABLE IF NOT EXISTS conversations (
+        id INTEGER PRIMARY KEY,
+        user1 TEXT NOT NULL,
+        user2 TEXT NOT NULL,
+        user_pair TEXT GENERATED ALWAYS AS (
+          CASE 
+            WHEN user1 < user2 THEN user1 || ':' || user2
+            ELSE user2 || ':' || user1
+          END
+        ) STORED UNIQUE
+      ); 
       CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY,
+        conversation_id INTEGER NOT NULL,
         from_username TEXT NOT NULL,
-        to_username TEXT NOT NULL,
         message TEXT NOT NULL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (conversation_id) REFERENCES conversations (id)
       );
     `);
   }
@@ -36,18 +47,42 @@ export class DB {
     return (query.get(username) as userRow)?.password_hash;
   }
 
+  insertConversation(user1: string, user2: string) {
+    const pair = user1 < user2 ? `${user1}:${user2}` : `${user2}:${user1}`;
+
+    const query = this.db.prepare(`
+      INSERT INTO conversations (user1, user2)
+      VALUES (?, ?)
+      RETURNING id
+    `);
+    const result: any = query.get(user1, user2);
+    return result?.id;
+  }
+
+  getConversations(user: string) {
+    const query = this.db.prepare(`
+      SELECT id, user1, user2 FROM conversations
+      WHERE user1 = ? OR user2 = ?
+    `);
+    return query.all(user, user);
+  }
+
   insertMessage(fromUsername: string, toUsername: string, message: string) {
-    const query = this.db.prepare("INSERT INTO messages (from_username, to_username, message) VALUES (?, ?, ?)");
-    query.run(fromUsername, toUsername, message);
+    const conversationId = this.insertConversation(fromUsername, toUsername);
+    const query = this.db.prepare("INSERT INTO messages (conversation_id, from_username, message) VALUES (?, ?, ?)");
+    query.run(conversationId, fromUsername, message);
   }
 
-  getConversations(fromUsername: string) {
-    const query = this.db.prepare("SELECT DISTINCT to_username FROM messages WHERE from_username = ? ORDER BY timestamp ASC");
-    return query.all(fromUsername);
-  }
+  getMessages(user1: string, user2: string) {
+    const pair = user1 < user2 ? `${user1}:${user2}` : `${user2}:${user1}`;
+    const conversation: any = this.db
+      .prepare("SELECT id FROM conversations WHERE user_pair = ?")
+      .get(pair);
+    if (!conversation) return [];
 
-  getMessages(fromUsername: string, toUsername: string) {
-    const query = this.db.prepare("SELECT * FROM messages WHERE (from_username = ? AND to_username = ?) OR (from_username = ? AND to_username = ?) ORDER BY timestamp ASC");
-    return query.all(fromUsername, toUsername, toUsername, fromUsername);
+    const query = this.db.prepare(
+      "SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ASC"
+    );
+    return query.all(conversation.id);
   }
 };
