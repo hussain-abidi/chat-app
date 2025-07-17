@@ -1,23 +1,23 @@
 import { type ServerWebSocket } from "bun";
-import { DB } from "./Database"
+import { DB } from "./Database";
 import { randomUUID } from "crypto";
 
 interface WsData {
-  username: string,
-  token: string
-};
+  username: string;
+  token: string;
+}
 
 type SocketType = ServerWebSocket<WsData>;
 
 interface MessageType {
-  to: string,
-  message: string
+  to: string;
+  message: string;
 }
 
 export class Server {
   port: number;
 
-  sockets = new Map<string, SocketType>()
+  sockets = new Map<string, SocketType>();
 
   tokens = new Map<string, string>();
 
@@ -35,8 +35,9 @@ export class Server {
       fetch: this.serverFetch,
       websocket: {
         open: (ws: SocketType) => this.socketOpen(ws),
-        message: (ws: SocketType, message: string) => this.socketMessage(ws, message),
-        close: (ws: SocketType) => this.socketClose(ws)
+        message: (ws: SocketType, message: string) =>
+          this.socketMessage(ws, message),
+        close: (ws: SocketType) => this.socketClose(ws),
       },
     });
 
@@ -47,17 +48,25 @@ export class Server {
     const url = new URL(req.url);
 
     switch (url.pathname) {
-      case "/register": return this.getPage("/register.html");
-      case "/login": return this.getPage("/login.html");
-      case "/chat": return this.getPage("/chat.html");
-      case "/reg": return this.handleRegister(req);
-      case "/log": return this.handleLogin(req);
-      case "/ws": return this.handleWS(req, server);
-      case "/logout": return this.handleLogout(req);
+      case "/register":
+        return this.getPage("/register.html");
+      case "/login":
+        return this.getPage("/login.html");
+      case "/chat":
+        return this.getPage("/chat.html");
+      case "/reg":
+        return this.handleRegister(req);
+      case "/log":
+        return this.handleLogin(req);
+      case "/ws":
+        return this.handleWS(req, server);
+      case "/logout":
+        return this.handleLogout(req);
 
-      default: return this.handleStatic(req);
+      default:
+        return this.handleStatic(req);
     }
-  }
+  };
 
   async getPage(path: string) {
     console.log(path);
@@ -78,7 +87,9 @@ export class Server {
   }
 
   async handleRegister(req: Request) {
-    if (req.method !== "POST") { return; }
+    if (req.method !== "POST") {
+      return;
+    }
 
     let reqJson;
     try {
@@ -91,11 +102,17 @@ export class Server {
     const password = reqJson.password;
 
     if (!username || !password) {
-      return Response.json({ message: "Empty credentials are not allowed" }, { status: 400 });
+      return Response.json(
+        { message: "Empty credentials are not allowed" },
+        { status: 400 },
+      );
     }
 
     if (this.db.getHashedPassword(username)) {
-      return Response.json({ message: "Username already exists" }, { status: 400 });
+      return Response.json(
+        { message: "Username already exists" },
+        { status: 400 },
+      );
     }
 
     const hashedPassword = await Bun.password.hash(password);
@@ -106,7 +123,9 @@ export class Server {
   }
 
   async handleLogin(req: Request) {
-    if (req.method !== "POST") { return; }
+    if (req.method !== "POST") {
+      return;
+    }
 
     let reqJson;
     try {
@@ -120,7 +139,10 @@ export class Server {
 
     const hashedPassword = this.db.getHashedPassword(username);
 
-    if (!hashedPassword || !await Bun.password.verify(password, hashedPassword)) {
+    if (
+      !hashedPassword ||
+      !(await Bun.password.verify(password, hashedPassword))
+    ) {
       return Response.json({ message: "Invalid credentials" }, { status: 401 });
     }
 
@@ -154,7 +176,9 @@ export class Server {
   }
 
   async handleLogout(req: Request) {
-    if (req.method !== "POST") { return; }
+    if (req.method !== "POST") {
+      return;
+    }
 
     let reqJson;
     try {
@@ -170,11 +194,9 @@ export class Server {
         this.tokens.delete(token);
       }
     }
-    
+
     return Response.json({ message: "Logged out successfully" });
   }
-
-
 
   socketOpen(ws: SocketType) {
     const username = ws.data.username;
@@ -183,7 +205,9 @@ export class Server {
 
     console.log(`${username} connected from ${ws.remoteAddress}.`);
 
-    const conversations = this.db.getConversations(username).map((conversation: any) => conversation.to_username);
+    const conversations = this.db
+      .getConversations(username)
+      .map((conversation: any) => conversation.to_username);
 
     ws.send(JSON.stringify({ type: "conversations", conversations }));
   }
@@ -194,7 +218,7 @@ export class Server {
     let data: MessageType;
     try {
       data = JSON.parse(message);
-      if (!data.to || typeof data.message !== 'string') return;
+      if (!data.to || typeof data.message !== "string") return;
     } catch (err) {
       return;
     }
@@ -208,7 +232,9 @@ export class Server {
     }
 
     if (targetUser) {
-      targetUser.send(JSON.stringify({ from: username, message: trimmedMessage }));
+      targetUser.send(
+        JSON.stringify({ from: username, message: trimmedMessage }),
+      );
 
       this.db.insertMessage(username, data.to, trimmedMessage);
 
@@ -223,4 +249,4 @@ export class Server {
 
     console.log(`${username} disconnected.`);
   }
-};
+}
