@@ -9,11 +9,6 @@ interface WsData {
 
 type SocketType = ServerWebSocket<WsData>;
 
-interface MessageType {
-  to: string;
-  message: string;
-}
-
 export class Server {
   port: number;
 
@@ -49,11 +44,9 @@ export class Server {
 
     switch (url.pathname) {
       case "/register":
-        return this.getPage("/register.html");
       case "/login":
-        return this.getPage("/login.html");
       case "/chat":
-        return this.getPage("/chat.html");
+        return this.getPage(url.pathname + ".html");
       case "/reg":
         return this.handleRegister(req);
       case "/log":
@@ -215,30 +208,48 @@ export class Server {
   socketMessage(ws: SocketType, message: string) {
     const username = ws.data.username;
 
-    let data: MessageType;
+    let data;
     try {
       data = JSON.parse(message);
-      if (!data.to || typeof data.message !== "string") return;
     } catch (err) {
       return;
     }
 
-    const targetUser = this.sockets.get(data.to);
+    console.log(data);
 
-    const trimmedMessage = data.message.trim();
+    switch (data.type) {
+      case 0: // get conversation
+        const messages = this.db.getMessages(username, data.conversation);
+        console.log(messages);
+        ws.send(JSON.stringify(messages));
+        break;
 
-    if (!trimmedMessage) {
-      return;
-    }
+      case 1: // send message
+        if (!data.to || typeof data.message !== "string") return;
 
-    if (targetUser) {
-      targetUser.send(
-        JSON.stringify({ from: username, message: trimmedMessage }),
-      );
+        const targetUser = this.sockets.get(data.to);
 
-      this.db.insertMessage(username, data.to, trimmedMessage);
+        const trimmedMessage = data.message.trim();
 
-      console.log(`Message from ${username} to ${data.to}: ${data.message} `);
+        if (!trimmedMessage) {
+          return;
+        }
+
+        if (targetUser) {
+          targetUser.send(
+            JSON.stringify([
+              {
+                from_username: username,
+                message: trimmedMessage,
+              },
+            ]),
+          );
+        }
+
+        this.db.insertMessage(username, data.to, trimmedMessage);
+        console.log(`Message from ${username} to ${data.to}: ${data.message} `);
+
+        break;
     }
   }
 

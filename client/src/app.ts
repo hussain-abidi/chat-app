@@ -66,9 +66,11 @@ function connectSocket(token: string) {
           .appendChild(conversationElement);
       });
     } else {
-      const messageElement = document.createElement("p");
-      messageElement.innerText = `${data.from}: ${data.message}`;
-      document.getElementById("messages")!.appendChild(messageElement);
+      for (let message of data) {
+        const messageElement = document.createElement("p");
+        messageElement.innerText = `${message.from_username}: ${message.message}`;
+        document.getElementById("messages")!.appendChild(messageElement);
+      }
     }
   });
 }
@@ -77,5 +79,5 @@ function sendMessage(socket: WebSocket, toUsername: string, message: string) {
   const messageElement = document.createElement("p");
   messageElement.innerText = `You: ${message}`;
   document.getElementById("messages")!.appendChild(messageElement);
-  socket.send(JSON.stringify({ to: toUsername, message: message }));
+  socket.send(JSON.stringify({ type: 1, to: toUsername, message: message }));
 }

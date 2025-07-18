@@ -49,15 +49,15 @@ export class DB {
 
   getConversations(fromUsername: string) {
     const query = this.db.prepare(
-      "SELECT DISTINCT to_username FROM messages WHERE from_username = ? ORDER BY timestamp ASC",
+      "SELECT DISTINCT to_username FROM messages WHERE from_username = ? OR to_username = ? ORDER BY timestamp ASC",
     );
-    return query.all(fromUsername);
+    return query.all(fromUsername, fromUsername);
   }
 
-  getMessages(fromUsername: string, toUsername: string) {
+  getMessages(user1: string, user2: string) {
     const query = this.db.prepare(
       "SELECT * FROM messages WHERE (from_username = ? AND to_username = ?) OR (from_username = ? AND to_username = ?) ORDER BY timestamp ASC",
     );
-    return query.all(fromUsername, toUsername, toUsername, fromUsername);
+    return query.all(user1, user2, user2, user1);
   }
 }
